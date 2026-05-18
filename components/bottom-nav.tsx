@@ -15,9 +15,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BarChart3, ClipboardList } from "lucide-react";
+import { BarChart3, ClipboardList, LogOut } from "lucide-react";
+import { auth } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 
 const mainNav = [
   { name: "Panel", href: "/dashboard", icon: LayoutDashboard },
@@ -35,6 +38,12 @@ const moreNav = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    auth.logout();
+    router.push("/login");
+  };
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-pb">
@@ -69,6 +78,13 @@ export function BottomNav() {
                       </Link>
                     </DropdownMenuItem>
                   ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <LogOut className="w-4 h-4" />
+                      Cerrar sesión
+                    </div>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             );

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -11,8 +12,10 @@ import {
   BarChart3,
   ClipboardList,
   Coffee,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { auth } from "@/lib/auth";
 
 const navigation = [
   { name: "Panel", href: "/dashboard", icon: LayoutDashboard },
@@ -26,6 +29,17 @@ const navigation = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [activeUser, setActiveUser] = useState<any>(null);
+
+  useEffect(() => {
+    setActiveUser(auth.getActiveUser());
+  }, []);
+
+  const handleLogout = () => {
+    auth.logout();
+    router.push("/login");
+  };
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-sidebar text-sidebar-foreground">
@@ -65,15 +79,26 @@ export function AppSidebar() {
 
         {/* User section */}
         <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 px-2">
-            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-sidebar-accent text-sidebar-accent-foreground font-semibold text-sm">
-              DM
+          {activeUser && (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 px-2">
+                <div className="flex items-center justify-center w-9 h-9 rounded-full bg-sidebar-accent text-sidebar-accent-foreground font-semibold text-sm">
+                  {activeUser.name.substring(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">{activeUser.name}</p>
+                  <p className="text-xs text-sidebar-foreground/60 truncate">Cafetería</p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-lg transition-colors border border-transparent shadow-sm hover:shadow-none"
+              >
+                <LogOut className="w-4 h-4" />
+                Cerrar sesión
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">David Morales</p>
-              <p className="text-xs text-sidebar-foreground/60 truncate">Gerente</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </aside>
