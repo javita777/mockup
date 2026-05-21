@@ -23,14 +23,17 @@ export interface CartItem {
 }
 
 export default function POSPage() {
-  const { cafeId } = useCafe();
+  const { cafeId, cafeLoading } = useCafe();
   const [products, setProducts] = useState<Product[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
   const fetchProducts = useCallback(async () => {
-    if (!cafeId) return;
+    if (!cafeId) {
+      setProducts([]);
+      return;
+    }
     const { data } = await supabase
       .from("products")
       .select("*")
@@ -41,8 +44,8 @@ export default function POSPage() {
   }, [cafeId]);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    if (!cafeLoading) fetchProducts();
+  }, [fetchProducts, cafeLoading]);
 
   const filteredProducts =
     activeCategory === "all"

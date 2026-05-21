@@ -21,16 +21,20 @@ import { useCafe } from "@/context/cafe-context";
 import type { Product } from "@/lib/types";
 
 export default function MenuPage() {
-  const { cafeId } = useCafe();
+  const { cafeId, cafeLoading } = useCafe();
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [showInactive, setShowInactive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const fetchProducts = useCallback(async () => {
-    if (!cafeId) return;
+    if (!cafeId) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data } = await supabase
       .from("products")
@@ -42,8 +46,8 @@ export default function MenuPage() {
   }, [cafeId]);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    if (!cafeLoading) fetchProducts();
+  }, [fetchProducts, cafeLoading]);
 
   const filteredProducts = products.filter((p) => {
     const matchesCategory = activeCategory === "all" || p.category === activeCategory;

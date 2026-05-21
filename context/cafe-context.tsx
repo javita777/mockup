@@ -7,19 +7,27 @@ import { auth } from "@/lib/auth";
 interface CafeContextValue {
   cafeId: string | null;
   cafeName: string | null;
+  cafeLoading: boolean;
 }
 
-const CafeContext = createContext<CafeContextValue>({ cafeId: null, cafeName: null });
+const CafeContext = createContext<CafeContextValue>({
+  cafeId: null,
+  cafeName: null,
+  cafeLoading: true,
+});
 
 export function CafeProvider({ children }: { children: React.ReactNode }) {
   const [cafeId, setCafeId] = useState<string | null>(null);
   const [cafeName, setCafeName] = useState<string | null>(null);
+  const [cafeLoading, setCafeLoading] = useState(true);
 
   const loadCafe = useCallback(async () => {
+    setCafeLoading(true);
     const user = auth.getActiveUser();
     if (!user) {
       setCafeId(null);
       setCafeName(null);
+      setCafeLoading(false);
       return;
     }
 
@@ -36,6 +44,7 @@ export function CafeProvider({ children }: { children: React.ReactNode }) {
       setCafeId(null);
       setCafeName(null);
     }
+    setCafeLoading(false);
   }, []);
 
   useEffect(() => {
@@ -45,7 +54,7 @@ export function CafeProvider({ children }: { children: React.ReactNode }) {
   }, [loadCafe]);
 
   return (
-    <CafeContext.Provider value={{ cafeId, cafeName }}>
+    <CafeContext.Provider value={{ cafeId, cafeName, cafeLoading }}>
       {children}
     </CafeContext.Provider>
   );

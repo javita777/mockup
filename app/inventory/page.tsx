@@ -21,15 +21,19 @@ import { useCafe } from "@/context/cafe-context";
 import type { InventoryItem } from "@/lib/types";
 
 export default function InventoryPage() {
-  const { cafeId } = useCafe();
+  const { cafeId, cafeLoading } = useCafe();
   const [items, setItems] = useState<InventoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "low" | "ok">("all");
 
   const fetchItems = useCallback(async () => {
-    if (!cafeId) return;
+    if (!cafeId) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data } = await supabase
       .from("inventory_items")
@@ -41,8 +45,8 @@ export default function InventoryPage() {
   }, [cafeId]);
 
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+    if (!cafeLoading) fetchItems();
+  }, [fetchItems, cafeLoading]);
 
   const filteredItems = items.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
