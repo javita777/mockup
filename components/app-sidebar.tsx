@@ -8,28 +8,24 @@ import {
   ShoppingCart,
   UtensilsCrossed,
   Package,
-  Users,
-  BarChart3,
-  ClipboardList,
   Coffee,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/auth";
+import { useCafe } from "@/context/cafe-context";
 
 const navigation = [
   { name: "Panel", href: "/dashboard", icon: LayoutDashboard },
   { name: "Punto de Venta", href: "/pos", icon: ShoppingCart },
   { name: "Menú", href: "/menu", icon: UtensilsCrossed },
   { name: "Inventario", href: "/inventory", icon: Package },
-  { name: "Clientes", href: "/customers", icon: Users },
-  { name: "Reportes", href: "/reports", icon: BarChart3 },
-  { name: "Operaciones", href: "/operations", icon: ClipboardList },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { cafeName } = useCafe();
   const [activeUser, setActiveUser] = useState<any>(null);
 
   useEffect(() => {
@@ -50,7 +46,7 @@ export function AppSidebar() {
             <Coffee className="w-6 h-6 text-sidebar-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-sidebar-foreground">TuCafetería</h1>
+            <h1 className="text-lg font-bold text-sidebar-foreground">{cafeName ?? "Cafetería"}</h1>
             <p className="text-xs text-sidebar-foreground/60">Gestión Integral</p>
           </div>
         </div>
@@ -87,7 +83,7 @@ export function AppSidebar() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-sidebar-foreground truncate">{activeUser.name}</p>
-                  <p className="text-xs text-sidebar-foreground/60 truncate">Cafetería</p>
+                  <p className="text-xs text-sidebar-foreground/60 truncate">{cafeName ?? "Cafetería"}</p>
                 </div>
               </div>
               <button

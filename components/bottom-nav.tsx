@@ -7,18 +7,9 @@ import {
   ShoppingCart,
   UtensilsCrossed,
   Package,
-  Users,
-  MoreHorizontal,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { BarChart3, ClipboardList, LogOut } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
@@ -27,13 +18,6 @@ const mainNav = [
   { name: "Venta", href: "/pos", icon: ShoppingCart },
   { name: "Menú", href: "/menu", icon: UtensilsCrossed },
   { name: "Stock", href: "/inventory", icon: Package },
-  { name: "Más", href: "#more", icon: MoreHorizontal },
-];
-
-const moreNav = [
-  { name: "Clientes", href: "/customers", icon: Users },
-  { name: "Reportes", href: "/reports", icon: BarChart3 },
-  { name: "Operaciones", href: "/operations", icon: ClipboardList },
 ];
 
 export function BottomNav() {
@@ -49,47 +33,6 @@ export function BottomNav() {
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-pb">
       <div className="flex items-center justify-around h-16 px-2">
         {mainNav.map((item) => {
-          if (item.href === "#more") {
-            const isMoreActive = moreNav.some((m) => pathname.startsWith(m.href));
-            return (
-              <DropdownMenu key={item.name}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={cn(
-                      "flex flex-col items-center justify-center gap-1 flex-1 h-full text-xs transition-colors",
-                      isMoreActive
-                        ? "text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.name}</span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 mb-2">
-                  {moreNav.map((subItem) => (
-                    <DropdownMenuItem key={subItem.name} asChild>
-                      <Link
-                        href={subItem.href}
-                        className="flex items-center gap-3 cursor-pointer"
-                      >
-                        <subItem.icon className="w-4 h-4" />
-                        {subItem.name}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <LogOut className="w-4 h-4" />
-                      Cerrar sesión
-                    </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            );
-          }
-
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
@@ -107,6 +50,13 @@ export function BottomNav() {
             </Link>
           );
         })}
+        <button
+          onClick={handleLogout}
+          className="flex flex-col items-center justify-center gap-1 flex-1 h-full text-xs text-muted-foreground hover:text-destructive transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium">Salir</span>
+        </button>
       </div>
     </nav>
   );

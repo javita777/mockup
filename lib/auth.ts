@@ -4,7 +4,6 @@ const ACTIVE_SESSION_KEY = "activeCafeteria";
 
 export const auth = {
     login: async (username: string, password: string): Promise<{ success: boolean; user?: Omit<MockUser, "password">; error?: string }> => {
-        // Simulated delay for realism
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         const user = mockUsers.find(
@@ -20,6 +19,7 @@ export const auth = {
 
             if (typeof window !== "undefined") {
                 localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(userData));
+                window.dispatchEvent(new CustomEvent("auth-changed", { detail: userData }));
             }
             return { success: true, user: userData };
         }
@@ -30,6 +30,7 @@ export const auth = {
     logout: () => {
         if (typeof window !== "undefined") {
             localStorage.removeItem(ACTIVE_SESSION_KEY);
+            window.dispatchEvent(new CustomEvent("auth-changed", { detail: null }));
         }
     },
 
@@ -41,7 +42,7 @@ export const auth = {
 
         try {
             return JSON.parse(stored);
-        } catch (error) {
+        } catch {
             return null;
         }
     },

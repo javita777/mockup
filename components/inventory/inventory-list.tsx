@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,28 +10,96 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { type Ingredient } from "@/lib/mock-data";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { InventoryItem } from "@/lib/types";
 import { MoreVertical, Plus, Minus, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { IngredientForm } from "./ingredient-form";
 
 interface InventoryListProps {
-  ingredients: Ingredient[];
+  items: InventoryItem[];
+  loading: boolean;
+  cafeId: string | null;
+  onRefresh: () => void;
 }
 
-function getStockStatus(ingredient: Ingredient) {
-  const percentage = (ingredient.currentStock / ingredient.maxStock) * 100;
-  
-  if (ingredient.currentStock <= ingredient.minStock) {
-    return { status: "danger", label: "Bajo", color: "bg-danger", textColor: "text-danger" };
+function getStockStatus(item: InventoryItem) {
+  if (item.current_stock <= item.minimum_stock) {
+    return { label: "Bajo", color: "bg-danger", textColor: "text-danger" };
   }
-  if (percentage <= 40) {
-    return { status: "warning", label: "Medio", color: "bg-warning", textColor: "text-warning" };
+  if (item.current_stock <= item.minimum_stock * 2) {
+    return { label: "Medio", color: "bg-warning", textColor: "text-warning" };
   }
-  return { status: "success", label: "OK", color: "bg-success", textColor: "text-success" };
+  return { label: "OK", color: "bg-success", textColor: "text-success" };
 }
 
-export function InventoryList({ ingredients }: InventoryListProps) {
-  if (ingredients.length === 0) {
+export function InventoryList({ items, loading, cafeId, onRefresh }: InventoryListProps) {
+  const [editItem, setEditItem] = useState<InventoryItem | null>(null);
+  const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
+  const [adjustingId, setAdjustingId] = useState<string | null>(null);
+
+  const adjustStock = async (item: InventoryItem, delta: number) => {
+    const newStock = Math.max(0, item.current_stock + delta);
+    setAdjustingId(item.id);
+    const { error } = await supabase
+      .from("inventory_items")
+      .update({ current_stock: newStock, updated_at: new Date().toISOString() })
+      .eq("id", item.id);
+    setAdjustingId(null);
+    if (error) {
+      toast.error("Error al actualizar el stock");
+    } else {
+      onRefresh();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteItem) return;
+    const { error } = await supabase
+      .from("inventory_items")
+      .delete()
+      .eq("id", deleteItem.id);
+    setDeleteItem(null);
+    if (error) {
+      toast.error("No se puede eliminar: el ingrediente está en uso en recetas");
+    } else {
+      toast.success("Ingrediente eliminado");
+      onRefresh();
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <div className="h-12 bg-muted animate-pulse rounded-lg" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">No se encontraron ingredientes</p>
@@ -39,96 +108,137 @@ export function InventoryList({ ingredients }: InventoryListProps) {
   }
 
   return (
-    <div className="space-y-3">
-      {ingredients.map((ingredient) => {
-        const stockStatus = getStockStatus(ingredient);
-        const stockPercentage = Math.min((ingredient.currentStock / ingredient.maxStock) * 100, 100);
-        const value = ingredient.currentStock * ingredient.costPerUnit;
+    <>
+      <div className="space-y-3">
+        {items.map((item) => {
+          const stockStatus = getStockStatus(item);
+          const reference = Math.max(item.minimum_stock * 3, item.current_stock);
+          const stockPercentage = Math.min((item.current_stock / reference) * 100, 100);
+          const value = item.current_stock * item.unit_cost;
+          const isAdjusting = adjustingId === item.id;
 
-        return (
-          <Card key={ingredient.id}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                {/* Status indicator */}
-                <div className={cn(
-                  "w-2 h-12 rounded-full flex-shrink-0",
-                  stockStatus.color
-                )} />
+          return (
+            <Card key={item.id}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className={cn("w-2 h-12 rounded-full flex-shrink-0", stockStatus.color)} />
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-foreground">{ingredient.name}</h3>
-                    <Badge
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-foreground">{item.name}</h3>
+                      <Badge variant="outline" className={cn("text-xs", stockStatus.textColor)}>
+                        {stockStatus.label}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          {item.current_stock} {item.unit} actuales
+                        </span>
+                        <span className="text-muted-foreground">
+                          Mín: {item.minimum_stock} {item.unit}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={cn("h-full rounded-full transition-all", stockStatus.color)}
+                          style={{ width: `${stockPercentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="hidden sm:block text-right">
+                    <p className="font-semibold text-foreground">${value.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">${item.unit_cost}/{item.unit}</p>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <Button
                       variant="outline"
-                      className={cn("text-xs", stockStatus.textColor)}
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={isAdjusting}
+                      onClick={() => adjustStock(item, -1)}
                     >
-                      {stockStatus.label}
-                    </Badge>
+                      <Minus className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={isAdjusting}
+                      onClick={() => adjustStock(item, 1)}
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => setEditItem(item)}>
+                          <Pencil className="w-4 h-4" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                          onClick={() => setDeleteItem(item)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  
-                  {/* Stock bar */}
-                  <div className="mt-2 space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">
-                        {ingredient.currentStock} / {ingredient.maxStock} {ingredient.unit}
-                      </span>
-                      <span className="text-muted-foreground">
-                        Mín: {ingredient.minStock} {ingredient.unit}
-                      </span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={cn("h-full rounded-full transition-all", stockStatus.color)}
-                        style={{ width: `${stockPercentage}%` }}
-                      />
-                    </div>
-                  </div>
                 </div>
 
-                {/* Value */}
-                <div className="hidden sm:block text-right">
-                  <p className="font-semibold text-foreground">${value.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">${ingredient.costPerUnit}/{ingredient.unit}</p>
+                <div className="sm:hidden mt-3 pt-3 border-t border-border flex justify-between text-sm">
+                  <span className="text-muted-foreground">Valor en stock:</span>
+                  <span className="font-semibold text-foreground">${value.toLocaleString()}</span>
                 </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
-                {/* Quick actions */}
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-8 w-8">
-                    <Minus className="w-3 h-3" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8">
-                    <Plus className="w-3 h-3" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem className="gap-2 cursor-pointer">
-                        <Pencil className="w-4 h-4" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 cursor-pointer text-destructive focus:text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
+      {/* Edit dialog */}
+      <Dialog open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar Ingrediente</DialogTitle>
+          </DialogHeader>
+          {editItem && cafeId && (
+            <IngredientForm
+              cafeId={cafeId}
+              initial={editItem}
+              onClose={() => setEditItem(null)}
+              onSaved={() => { setEditItem(null); onRefresh(); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
-              {/* Mobile value */}
-              <div className="sm:hidden mt-3 pt-3 border-t border-border flex justify-between text-sm">
-                <span className="text-muted-foreground">Valor en stock:</span>
-                <span className="font-semibold text-foreground">${value.toLocaleString()}</span>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar ingrediente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará <strong>{deleteItem?.name}</strong> del inventario. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { InventoryList } from "@/components/inventory/inventory-list";
 import { InventoryStats } from "@/components/inventory/inventory-stats";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Download } from "lucide-react";
-import { ingredients } from "@/lib/mock-data";
+import { Plus, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,24 +16,40 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { IngredientForm } from "@/components/inventory/ingredient-form";
+import { supabase } from "@/lib/supabase";
+import { useCafe } from "@/context/cafe-context";
+import type { InventoryItem } from "@/lib/types";
 
 export default function InventoryPage() {
+  const { cafeId } = useCafe();
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "low" | "ok">("all");
 
-  const filteredIngredients = ingredients.filter((ingredient) => {
-    const matchesSearch = ingredient.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
+  const fetchItems = useCallback(async () => {
+    if (!cafeId) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from("inventory_items")
+      .select("*")
+      .eq("cafe_id", cafeId)
+      .order("name");
+    setItems(data ?? []);
+    setLoading(false);
+  }, [cafeId]);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
+
+  const filteredItems = items.filter((item) => {
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     if (statusFilter === "all") return matchesSearch;
-    
-    const stockPercentage = (ingredient.currentStock / ingredient.maxStock) * 100;
-    const isLow = ingredient.currentStock <= ingredient.minStock;
-    const isMedium = stockPercentage <= 40 && !isLow;
-    
-    if (statusFilter === "low") return matchesSearch && (isLow || isMedium);
-    if (statusFilter === "ok") return matchesSearch && !isLow && !isMedium;
-    
+    const isLow = item.current_stock <= item.minimum_stock;
+    if (statusFilter === "low") return matchesSearch && isLow;
+    if (statusFilter === "ok") return matchesSearch && !isLow;
     return matchesSearch;
   });
 
@@ -42,10 +57,6 @@ export default function InventoryPage() {
     <AppShell>
       <PageHeader title="Inventario" description="Control de stock e ingredientes">
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="hidden sm:flex gap-2">
-            <Download className="w-4 h-4" />
-            Exportar
-          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-2">
@@ -57,17 +68,21 @@ export default function InventoryPage() {
               <DialogHeader>
                 <DialogTitle>Nuevo Ingrediente</DialogTitle>
               </DialogHeader>
-              <IngredientForm onClose={() => setDialogOpen(false)} />
+              {cafeId && (
+                <IngredientForm
+                  cafeId={cafeId}
+                  onClose={() => setDialogOpen(false)}
+                  onSaved={() => { setDialogOpen(false); fetchItems(); }}
+                />
+              )}
             </DialogContent>
           </Dialog>
         </div>
       </PageHeader>
 
       <div className="p-4 md:p-6 space-y-6">
-        {/* Stats */}
-        <InventoryStats ingredients={ingredients} />
+        <InventoryStats items={filteredItems} loading={loading} />
 
-        {/* Search and filters */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -79,23 +94,27 @@ export default function InventoryPage() {
             />
           </div>
           <div className="flex gap-2">
-            {(["all", "low", "ok"] as const).map((status) => (
+            {(["all", "low", "ok"] as const).map((s) => (
               <Button
-                key={status}
-                variant={statusFilter === status ? "default" : "outline"}
+                key={s}
+                variant={statusFilter === s ? "default" : "outline"}
                 size="sm"
-                onClick={() => setStatusFilter(status)}
+                onClick={() => setStatusFilter(s)}
               >
-                {status === "all" && "Todos"}
-                {status === "low" && "Stock Bajo"}
-                {status === "ok" && "OK"}
+                {s === "all" && "Todos"}
+                {s === "low" && "Stock Bajo"}
+                {s === "ok" && "OK"}
               </Button>
             ))}
           </div>
         </div>
 
-        {/* Inventory List */}
-        <InventoryList ingredients={filteredIngredients} />
+        <InventoryList
+          items={filteredItems}
+          loading={loading}
+          cafeId={cafeId}
+          onRefresh={fetchItems}
+        />
       </div>
     </AppShell>
   );

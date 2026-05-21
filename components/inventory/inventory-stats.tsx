@@ -1,41 +1,42 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Package, AlertTriangle, CheckCircle, DollarSign } from "lucide-react";
-import { type Ingredient } from "@/lib/mock-data";
+import type { InventoryItem } from "@/lib/types";
 
 interface InventoryStatsProps {
-  ingredients: Ingredient[];
+  items: InventoryItem[];
+  loading?: boolean;
 }
 
-export function InventoryStats({ ingredients }: InventoryStatsProps) {
-  const lowStock = ingredients.filter((i) => i.currentStock <= i.minStock).length;
-  const okStock = ingredients.filter((i) => i.currentStock > i.minStock).length;
-  const totalValue = ingredients.reduce((sum, i) => sum + i.currentStock * i.costPerUnit, 0);
+export function InventoryStats({ items, loading }: InventoryStatsProps) {
+  const lowStock = items.filter((i) => i.current_stock <= i.minimum_stock).length;
+  const okStock = items.filter((i) => i.current_stock > i.minimum_stock).length;
+  const totalValue = items.reduce((sum, i) => sum + i.current_stock * i.unit_cost, 0);
 
   const stats = [
     {
       name: "Total Ingredientes",
-      value: ingredients.length.toString(),
+      value: loading ? "…" : items.length.toString(),
       icon: Package,
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
     {
       name: "Stock Bajo",
-      value: lowStock.toString(),
+      value: loading ? "…" : lowStock.toString(),
       icon: AlertTriangle,
       color: "text-danger",
       bgColor: "bg-danger/10",
     },
     {
       name: "Stock OK",
-      value: okStock.toString(),
+      value: loading ? "…" : okStock.toString(),
       icon: CheckCircle,
       color: "text-success",
       bgColor: "bg-success/10",
     },
     {
       name: "Valor Total",
-      value: `$${totalValue.toLocaleString()}`,
+      value: loading ? "…" : `$${totalValue.toLocaleString()}`,
       icon: DollarSign,
       color: "text-primary",
       bgColor: "bg-primary/10",
