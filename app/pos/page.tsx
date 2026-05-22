@@ -28,6 +28,7 @@ export default function POSPage() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const [stockWarnings, setStockWarnings] = useState<string[]>([]);
 
   const fetchProducts = useCallback(async () => {
     if (!cafeId) {
@@ -46,6 +47,35 @@ export default function POSPage() {
   useEffect(() => {
     if (!cafeLoading) fetchProducts();
   }, [fetchProducts, cafeLoading]);
+
+  useEffect(() => {
+    if (!cafeId || cart.length === 0) {
+      setStockWarnings([]);
+      return;
+    }
+    const productIds = [...new Set(cart.map((item) => item.product.id))];
+    supabase
+      .from("recipes")
+      .select("inventory_item_id, inventory_items(name, current_stock, minimum_stock, unit)")
+      .eq("cafe_id", cafeId)
+      .in("product_id", productIds)
+      .then(({ data }) => {
+        if (!data) return;
+        const warnings: string[] = [];
+        const seen = new Set<string>();
+        data.forEach((recipe) => {
+          const inv = recipe.inventory_items as any;
+          if (!inv || seen.has(recipe.inventory_item_id)) return;
+          seen.add(recipe.inventory_item_id);
+          if (inv.current_stock === 0) {
+            warnings.push(`Sin stock: ${inv.name}`);
+          } else if (inv.current_stock <= inv.minimum_stock) {
+            warnings.push(`Stock bajo: ${inv.name} (${inv.current_stock} ${inv.unit})`);
+          }
+        });
+        setStockWarnings(warnings);
+      });
+  }, [cart, cafeId]);
 
   const filteredProducts =
     activeCategory === "all"
@@ -179,6 +209,7 @@ export default function POSPage() {
               onRemove={removeFromCart}
               onClear={clearCart}
               total={cartTotal}
+              stockWarnings={stockWarnings}
               onCheckout={async (pm) => { await handleCheckout(pm); setMobileCartOpen(false); }}
             />
           </SheetContent>
@@ -200,6 +231,7 @@ export default function POSPage() {
             onRemove={removeFromCart}
             onClear={clearCart}
             total={cartTotal}
+            stockWarnings={stockWarnings}
             onCheckout={handleCheckout}
           />
         </div>

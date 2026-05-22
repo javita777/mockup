@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Minus, Plus, Trash2, ShoppingCart, CreditCard, Banknote, Smartphone } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, CreditCard, Banknote, Smartphone, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CartItem } from "@/app/pos/page";
 
@@ -20,6 +20,7 @@ interface POSCartProps {
   onRemove: (index: number) => void;
   onClear: () => void;
   total: number;
+  stockWarnings: string[];
   onCheckout: (paymentMethod: string) => Promise<void>;
 }
 
@@ -29,7 +30,7 @@ const paymentMethods = [
   { id: "transferencia", label: "Transferencia", icon: Smartphone },
 ];
 
-export function POSCart({ cart, onUpdateQuantity, onRemove, onClear, total, onCheckout }: POSCartProps) {
+export function POSCart({ cart, onUpdateQuantity, onRemove, onClear, total, stockWarnings, onCheckout }: POSCartProps) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("efectivo");
   const [processing, setProcessing] = useState(false);
@@ -129,7 +130,18 @@ export function POSCart({ cart, onUpdateQuantity, onRemove, onClear, total, onCh
           </div>
         </ScrollArea>
 
-        <div className="border-t border-border p-4 space-y-4 bg-card">
+        <div className="border-t border-border p-4 space-y-3 bg-card">
+          {stockWarnings.length > 0 && (
+            <div className="rounded-lg bg-warning/10 border border-warning/30 p-3 space-y-1">
+              <div className="flex items-center gap-2 text-warning text-xs font-semibold">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                Ingredientes con stock bajo
+              </div>
+              {stockWarnings.map((w) => (
+                <p key={w} className="text-xs text-muted-foreground pl-5">{w}</p>
+              ))}
+            </div>
+          )}
           <div className="flex justify-between text-lg font-bold">
             <span className="text-foreground">Total</span>
             <span className="text-primary">${grandTotal.toFixed(2)}</span>
