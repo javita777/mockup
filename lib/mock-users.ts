@@ -24,4 +24,10 @@ export const mockUsers: MockUser[] = [
     password: "demo123",
     name: "Cafetería 3",
   },
+  {
+    id: "user_demo",
+    username: "demo",
+    password: "demo1234",
+    name: "Café Demo",
+  },
 ];
