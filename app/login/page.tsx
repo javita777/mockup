@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Coffee } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,7 @@ export default function LoginPage() {
                             <Input
                                 id="username"
                                 type="text"
-                                placeholder="vibratos"
+                                placeholder="tu-usuario"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 required
@@ -85,14 +86,13 @@ export default function LoginPage() {
                         </Button>
                     </form>
                 </CardContent>
-                <CardFooter className="flex flex-col border-t bg-muted/30 px-6 py-4">
-                    <div className="text-sm text-muted-foreground text-center">
-                        Usuarios de prueba MVP: <br />
-                        <span className="font-medium text-foreground">vibratos</span>,
-                        <span className="font-medium text-foreground ml-1">cafe2</span>,
-                        <span className="font-medium text-foreground ml-1">cafe3</span> <br />
-                        (Pass: demo123)
-                    </div>
+                <CardFooter className="flex justify-center border-t bg-muted/30 px-6 py-4">
+                    <p className="text-sm text-muted-foreground">
+                        ¿No tienes cuenta?{" "}
+                        <Link href="/register" className="text-primary font-medium hover:underline">
+                            Registrarse
+                        </Link>
+                    </p>
                 </CardFooter>
             </Card>
         </div>

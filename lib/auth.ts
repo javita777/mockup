@@ -1,49 +1,99 @@
-import { mockUsers, MockUser } from "./mock-users";
+import { supabase } from "./supabase";
 
-const ACTIVE_SESSION_KEY = "activeCafeteria";
+const SESSION_KEY = "activeCafeteria";
+
+export interface SessionUser {
+  id: string;
+  username: string;
+  name: string;
+}
+
+function toSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+export { toSlug };
 
 export const auth = {
-    login: async (username: string, password: string): Promise<{ success: boolean; user?: Omit<MockUser, "password">; error?: string }> => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+  login: async (
+    username: string,
+    password: string
+  ): Promise<{ success: boolean; user?: SessionUser; error?: string }> => {
+    const { data } = await supabase
+      .from("cafes")
+      .select("id, name, slug")
+      .eq("slug", username.toLowerCase().trim())
+      .eq("password", password)
+      .single();
 
-        const user = mockUsers.find(
-            (u) => u.username === username && u.password === password
-        );
+    if (!data) {
+      return { success: false, error: "Usuario o contraseña incorrectos" };
+    }
 
-        if (user) {
-            const userData = {
-                id: user.id,
-                username: user.username,
-                name: user.name,
-            };
+    const userData: SessionUser = { id: data.id, username: data.slug, name: data.name };
 
-            if (typeof window !== "undefined") {
-                localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(userData));
-                window.dispatchEvent(new CustomEvent("auth-changed", { detail: userData }));
-            }
-            return { success: true, user: userData };
-        }
+    if (typeof window !== "undefined") {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(userData));
+      window.dispatchEvent(new CustomEvent("auth-changed", { detail: userData }));
+    }
+    return { success: true, user: userData };
+  },
 
-        return { success: false, error: "Usuario o contraseña incorrectos" };
-    },
+  register: async (
+    cafeName: string,
+    slug: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const { data: existing } = await supabase
+      .from("cafes")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
 
-    logout: () => {
-        if (typeof window !== "undefined") {
-            localStorage.removeItem(ACTIVE_SESSION_KEY);
-            window.dispatchEvent(new CustomEvent("auth-changed", { detail: null }));
-        }
-    },
+    if (existing) {
+      return { success: false, error: "Ese usuario ya está en uso, elige otro" };
+    }
 
-    getActiveUser: (): Omit<MockUser, "password"> | null => {
-        if (typeof window === "undefined") return null;
+    const { data, error } = await supabase
+      .from("cafes")
+      .insert({ name: cafeName, slug, password })
+      .select("id, name, slug")
+      .single();
 
-        const stored = localStorage.getItem(ACTIVE_SESSION_KEY);
-        if (!stored) return null;
+    if (error || !data) {
+      return { success: false, error: "Error al crear la cuenta" };
+    }
 
-        try {
-            return JSON.parse(stored);
-        } catch {
-            return null;
-        }
-    },
+    const userData: SessionUser = { id: data.id, username: data.slug, name: data.name };
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(userData));
+      window.dispatchEvent(new CustomEvent("auth-changed", { detail: userData }));
+    }
+    return { success: true };
+  },
+
+  logout: () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(SESSION_KEY);
+      window.dispatchEvent(new CustomEvent("auth-changed", { detail: null }));
+    }
+  },
+
+  getActiveUser: (): SessionUser | null => {
+    if (typeof window === "undefined") return null;
+    const stored = localStorage.getItem(SESSION_KEY);
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return null;
+    }
+  },
 };
