@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Product } from "@/lib/types";
 import { CATEGORY_LABELS } from "@/lib/types";
-import { MoreVertical, Pencil, Trash2, Eye, EyeOff, Coffee, GlassWater, Sandwich, Cake } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Eye, EyeOff, Coffee, GlassWater, Sandwich, Cake, Tag } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { ProductForm } from "./product-form";
@@ -38,6 +38,7 @@ const categoryIcons: Record<string, typeof Coffee> = {
   "bebidas-frias": GlassWater,
   "comida": Sandwich,
   "postres": Cake,
+  "promociones": Tag,
 };
 
 interface MenuListProps {
@@ -116,6 +117,11 @@ export function MenuList({ products, loading, cafeId, onRefresh }: MenuListProps
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-foreground truncate">{product.name}</h3>
+                      {product.category === "promociones" && (
+                        <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">
+                          Promo
+                        </Badge>
+                      )}
                       <Badge variant={product.active ? "default" : "secondary"} className="text-xs">
                         {product.active ? "Activo" : "Inactivo"}
                       </Badge>

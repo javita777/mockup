@@ -58,6 +58,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   'bebidas-frias': 'Bebidas Frías',
   'comida': 'Comida',
   'postres': 'Postres',
+  'promociones': 'Promociones',
 };
 
 export const CATEGORIES = [
@@ -65,6 +66,7 @@ export const CATEGORIES = [
   { id: 'bebidas-frias', name: 'Bebidas Frías' },
   { id: 'comida', name: 'Comida' },
   { id: 'postres', name: 'Postres' },
+  { id: 'promociones', name: 'Promociones' },
 ];
 
 export const UNITS = [
