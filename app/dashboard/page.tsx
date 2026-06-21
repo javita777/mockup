@@ -174,8 +174,13 @@ export default function DashboardPage() {
       <div className="p-4 md:p-6 space-y-6">
         <DashboardStats stats={stats} loading={loading || cafeLoading} />
 
-        <div className="md:hidden">
-          <QuickActions />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <AlertsPanel alerts={alerts} loading={loading || cafeLoading} />
+          </div>
+          <div>
+            <QuickActions />
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -184,15 +189,6 @@ export default function DashboardPage() {
           </div>
           <div>
             <TopProducts products={topProducts} loading={loading || cafeLoading} />
-          </div>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <AlertsPanel alerts={alerts} loading={loading || cafeLoading} />
-          </div>
-          <div className="hidden md:block">
-            <QuickActions />
           </div>
         </div>
       </div>
