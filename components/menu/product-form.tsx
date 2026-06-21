@@ -24,6 +24,15 @@ interface RecipeRow {
   unit: string;
 }
 
+function computeRecipeCost(rows: RecipeRow[], items: InventoryItem[]): number {
+  return rows.reduce((sum, row) => {
+    if (!row.inventory_item_id || !row.quantity) return sum;
+    const item = items.find((it) => it.id === row.inventory_item_id);
+    if (!item) return sum;
+    return sum + parseFloat(row.quantity) * item.unit_cost;
+  }, 0);
+}
+
 interface ProductFormProps {
   cafeId: string;
   onClose: () => void;
@@ -70,6 +79,16 @@ export function ProductForm({ cafeId, onClose, onSaved, initial }: ProductFormPr
         });
     }
   }, [cafeId, initial?.id]);
+
+  const hasValidRecipes = recipes.some(
+    (r) => r.inventory_item_id && r.quantity && parseFloat(r.quantity) > 0
+  );
+
+  useEffect(() => {
+    if (!hasValidRecipes) return;
+    const total = computeRecipeCost(recipes, inventoryItems);
+    setFormData((prev) => ({ ...prev, cost: total.toFixed(2) }));
+  }, [recipes, inventoryItems]);
 
   const addRecipeRow = () => {
     setRecipes([...recipes, { inventory_item_id: "", quantity: "", unit: "" }]);
@@ -210,7 +229,14 @@ export function ProductForm({ cafeId, onClose, onSaved, initial }: ProductFormPr
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="cost">Costo</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="cost">Costo</Label>
+              {hasValidRecipes && (
+                <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                  calculado de receta
+                </span>
+              )}
+            </div>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
               <Input
@@ -220,7 +246,8 @@ export function ProductForm({ cafeId, onClose, onSaved, initial }: ProductFormPr
                 placeholder="0.00"
                 className="pl-7"
                 value={formData.cost}
-                onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                onChange={(e) => !hasValidRecipes && setFormData({ ...formData, cost: e.target.value })}
+                readOnly={hasValidRecipes}
                 required
               />
             </div>
