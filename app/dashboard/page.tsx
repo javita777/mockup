@@ -39,6 +39,8 @@ export interface StockAlert {
   current_stock: number;
   minimum_stock: number;
   unit: string;
+  unit_cost: number;
+  supplier?: string | null;
 }
 
 const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -102,7 +104,7 @@ export default function DashboardPage() {
       supabase.from("sales").select("total").eq("cafe_id", cafeId).gte("created_at", yesterdayStart.toISOString()).lt("created_at", todayStart.toISOString()),
       supabase.from("sales").select("total, created_at").eq("cafe_id", cafeId).gte("created_at", sevenDaysAgo.toISOString()),
       supabase.from("sales").select("id").eq("cafe_id", cafeId).gte("created_at", thirtyDaysAgo.toISOString()),
-      supabase.from("inventory_items").select("id, name, current_stock, minimum_stock, unit").eq("cafe_id", cafeId),
+      supabase.from("inventory_items").select("id, name, current_stock, minimum_stock, unit, unit_cost, supplier").eq("cafe_id", cafeId),
       supabase.from("products").select("*", { count: "exact", head: true }).eq("cafe_id", cafeId).eq("active", true),
     ]);
 

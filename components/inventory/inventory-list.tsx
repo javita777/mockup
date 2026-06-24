@@ -27,11 +27,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { InventoryItem } from "@/lib/types";
-import { MoreVertical, Plus, Minus, Pencil, Trash2 } from "lucide-react";
+import { MoreVertical, Plus, Minus, Pencil, Trash2, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { IngredientForm } from "./ingredient-form";
+import { ReorderDialog } from "./reorder-dialog";
+import type { ReorderItem } from "./reorder-dialog";
 
 interface InventoryListProps {
   items: InventoryItem[];
@@ -53,6 +55,7 @@ function getStockStatus(item: InventoryItem) {
 export function InventoryList({ items, loading, cafeId, onRefresh }: InventoryListProps) {
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
+  const [reorderItem, setReorderItem] = useState<ReorderItem | null>(null);
   const [adjustingId, setAdjustingId] = useState<string | null>(null);
 
   const adjustStock = async (item: InventoryItem, delta: number) => {
@@ -154,6 +157,17 @@ export function InventoryList({ items, loading, cafeId, onRefresh }: InventoryLi
                   </div>
 
                   <div className="flex items-center gap-1">
+                    {item.current_stock <= item.minimum_stock && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs border-warning text-warning hover:bg-warning/10 hover:text-warning hidden sm:flex"
+                        onClick={() => setReorderItem(item)}
+                      >
+                        <ShoppingCart className="w-3 h-3" />
+                        Reordenar
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="icon"
@@ -195,15 +209,35 @@ export function InventoryList({ items, loading, cafeId, onRefresh }: InventoryLi
                   </div>
                 </div>
 
-                <div className="sm:hidden mt-3 pt-3 border-t border-border flex justify-between text-sm">
+                <div className="sm:hidden mt-3 pt-3 border-t border-border flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Valor en stock:</span>
-                  <span className="font-semibold text-foreground">${value.toLocaleString()}</span>
+                  <div className="flex items-center gap-2">
+                    {item.current_stock <= item.minimum_stock && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1.5 text-xs border-warning text-warning hover:bg-warning/10 hover:text-warning"
+                        onClick={() => setReorderItem(item)}
+                      >
+                        <ShoppingCart className="w-3 h-3" />
+                        Reordenar
+                      </Button>
+                    )}
+                    <span className="font-semibold text-foreground">${value.toLocaleString()}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           );
         })}
       </div>
+
+      {/* Reorder dialog */}
+      <ReorderDialog
+        item={reorderItem}
+        open={!!reorderItem}
+        onOpenChange={(open) => !open && setReorderItem(null)}
+      />
 
       {/* Edit dialog */}
       <Dialog open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
